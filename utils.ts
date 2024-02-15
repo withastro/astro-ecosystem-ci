@@ -2,14 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import actionsCore from '@actions/core';
-import { AGENTS, Agent, detect, getCommand } from '@antfu/ni';
+import { AGENTS, type Agent, detect, getCommand } from '@antfu/ni';
 import { execaCommand } from 'execa';
 import * as semver from 'semver';
 import type {
-	// PackageInfo,
 	EnvironmentData,
 	Overrides,
-	PackageInfo,
 	ProcessEnv,
 	RepoOptions,
 	RunOptions,
@@ -44,8 +42,8 @@ export async function $(literals: TemplateStringsArray, ...values: any[]) {
 		cwd,
 	});
 	proc.stdin && process.stdin.pipe(proc.stdin);
-	proc.stdout && proc.stdout.pipe(process.stdout);
-	proc.stderr && proc.stderr.pipe(process.stderr);
+	proc.stdout?.pipe(process.stdout);
+	proc.stderr?.pipe(process.stderr);
 	const result = await proc;
 
 	if (isGitHubActions) {
@@ -150,15 +148,16 @@ export async function setupRepo(options: RepoOptions) {
 }
 
 function toCommand(
-	task: Task | Task[] | void,
+	task: Task | Task[] | undefined,
 	agent: Agent
-): ((scripts: any) => Promise<any>) | void {
+): ((scripts: any) => Promise<any>) | undefined {
 	return async (scripts: any) => {
 		const tasks = Array.isArray(task) ? task : [task];
 		for (const task of tasks) {
 			if (task == null || task === '') {
 				continue;
-			} else if (typeof task === 'string') {
+			}
+			if (typeof task === 'string') {
 				if (scripts[task] != null) {
 					const runTaskWithAgent = getCommand(agent, 'run', [task]);
 					await $`${runTaskWithAgent}`;
@@ -320,7 +319,7 @@ export async function setupAstroRepo(options: Partial<RepoOptions>) {
 			}
 		}
 	} catch (e) {
-		throw new Error(`Failed to setup astro repo`, { cause: e });
+		throw new Error('Failed to setup astro repo', { cause: e });
 	}
 }
 
@@ -445,11 +444,15 @@ async function overridePackageManagerVersion(
 	return false;
 }
 
-export async function applyPackageOverrides(dir: string, pkg: any, overrides: Overrides = {}) {
+export async function applyPackageOverrides(
+	dir: string,
+	pkg: any,
+	packageOverrides: Overrides = {}
+) {
 	const useFileProtocol = (v: string) => (isLocalOverride(v) ? `file:${path.resolve(v)}` : v);
 	// remove boolean flags
-	overrides = Object.fromEntries(
-		Object.entries(overrides)
+	const overrides = Object.fromEntries(
+		Object.entries(packageOverrides)
 			.filter(([key, value]) => typeof value === 'string')
 			.map(([key, value]) => [key, useFileProtocol(value as string)])
 	);
@@ -530,7 +533,7 @@ export function dirnameFrom(url: string) {
 // }
 
 export function parseMajorVersion(version: string) {
-	return parseInt(version.split('.', 1)[0], 10);
+	return Number.parseInt(version.split('.', 1)[0], 10);
 }
 
 async function buildOverrides(pkg: any, options: RunOptions, repoOverrides: Overrides) {
