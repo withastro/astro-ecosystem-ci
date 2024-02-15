@@ -1,6 +1,6 @@
-# vite-ecosystem-ci
+# astro-ecosystem-ci
 
-This repository is used to run integration tests for vite ecosystem projects
+This repository is used to run integration tests for astro ecosystem projects
 
 ## via github workflow
 
@@ -23,8 +23,8 @@ Workflows are scheduled to run automatically every Monday, Wednesday and Friday
 - or `pnpm test <suitename>` to select a suite
 - or `tsx ecosystem-ci.ts`
 
-You can pass `--tag v2.8.0-beta.1`, `--branch somebranch` or `--commit abcd1234` option to select a specific vite version to build.
-If you pass `--release 2.7.13`, vite build will be skipped and vite is fetched from the registry instead
+You can pass `--tag v2.8.0-beta.1`, `--branch somebranch` or `--commit abcd1234` option to select a specific astro version to build.
+If you pass `--release 2.7.13`, astro build will be skipped and astro is fetched from the registry instead
 
 The repositories are checked out into `workspace` subdirectory as shallow clones
 
@@ -33,7 +33,7 @@ The repositories are checked out into `workspace` subdirectory as shallow clones
 - comment `/ecosystem-ci run` on a PR
 - or `/ecosystem-ci run <suitename>` to select a suite
 
-Users with triage permission to vitejs/vite repository can only use this.
+Users with triage permission to withastro/astro repository can only use this.
 
 See [docs/pr-comment-setup.md](./docs/pr-comment-setup.md) for how to setup this feature.
 
@@ -46,7 +46,7 @@ See [docs/pr-comment-setup.md](./docs/pr-comment-setup.md) for how to setup this
 
 ## Discord
 
-Results are posted automatically to `#ecosystem-ci` on [vite discord](https://chat.vitejs.dev/)
+Results are posted automatically to `#ecosystem-ci` on [astro discord](https://astro.build/chat)
 
 ### on your own server
 

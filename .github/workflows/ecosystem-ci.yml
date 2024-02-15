@@ -1,5 +1,5 @@
-# integration tests for vite ecosystem projects - scheduled or manual run for all suites
-name: vite-ecosystem-ci
+# integration tests for astro ecosystem projects - scheduled or manual run for all suites
+name: astro-ecosystem-ci
 
 env:
   # 7 GiB by default on GitHub, setting to 6 GiB
@@ -22,15 +22,15 @@ on:
           - release
         default: "branch"
       ref:
-        description: "vite ref to use"
+        description: "astro ref to use"
         required: true
         type: string
         default: "main"
       repo:
-        description: "vite repository to use"
+        description: "astro repository to use"
         required: true
         type: string
-        default: "vitejs/vite"
+        default: "withastro/astro"
   repository_dispatch:
     types: [ecosystem-ci]
 jobs:
@@ -40,32 +40,7 @@ jobs:
     strategy:
       matrix:
         suite:
-          - analogjs
-          - astro
-          - histoire
-          # - iles # disabled until its CI is fixed
-          - ladle
-          - laravel
-          - marko
-          - nuxt
-          - nx
-          - previewjs
-          - qwik
-          - rakkas
-          # - remix # disabled until they move to pnpm
-          # - storybook # disabled until test is updated, see https://github.com/vitejs/vite-ecosystem-ci/issues/130
-          - sveltekit
-          - unocss
-          - vike
-          - vite-plugin-pwa
-          - vite-plugin-react
-          - vite-plugin-react-pages
-          - vite-plugin-react-swc
-          - vite-plugin-svelte
-          - vite-plugin-vue
-          - vite-setup-catalogue
-          - vitepress
-          - vitest
+          - cloudflare
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +59,7 @@ jobs:
       - run: >-
           pnpm tsx ecosystem-ci.ts
           --${{ inputs.refType || github.event.client_payload.refType || 'branch' }} ${{ inputs.ref || github.event.client_payload.ref || 'main' }}
-          --repo ${{ inputs.repo || github.event.client_payload.repo || 'vitejs/vite' }}
+          --repo ${{ inputs.repo || github.event.client_payload.repo || 'withastro/astro' }}
           ${{ matrix.suite }}
         id: ecosystem-ci-run
       - if: always()
@@ -93,7 +68,7 @@ jobs:
           WORKFLOW_NAME: ci
           REF_TYPE: ${{ inputs.refType || github.event.client_payload.refType || 'branch' }}
           REF: ${{ inputs.ref || github.event.client_payload.ref || 'main' }}
-          REPO: ${{ inputs.repo || github.event.client_payload.repo || 'vitejs/vite' }}
+          REPO: ${{ inputs.repo || github.event.client_payload.repo || 'withastro/astro' }}
           SUITE: ${{ matrix.suite }}
           STATUS: ${{ job.status }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

@@ -1,67 +1,65 @@
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath, pathToFileURL } from 'url'
-import { execaCommand } from 'execa'
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import actionsCore from '@actions/core';
+import { AGENTS, Agent, detect, getCommand } from '@antfu/ni';
+import { execaCommand } from 'execa';
+import * as semver from 'semver';
 import type {
-	PackageInfo,
+	// PackageInfo,
 	EnvironmentData,
 	Overrides,
+	PackageInfo,
 	ProcessEnv,
 	RepoOptions,
 	RunOptions,
 	Task,
-} from './types.d.ts'
-//eslint-disable-next-line n/no-unpublished-import
-import { detect, AGENTS, Agent, getCommand } from '@antfu/ni'
-import actionsCore from '@actions/core'
-// eslint-disable-next-line n/no-unpublished-import
-import * as semver from 'semver'
+} from './types.d.ts';
 
-const isGitHubActions = !!process.env.GITHUB_ACTIONS
+const isGitHubActions = !!process.env.GITHUB_ACTIONS;
 
-let vitePath: string
-let cwd: string
-let env: ProcessEnv
+let astroPath: string;
+let cwd: string;
+let env: ProcessEnv;
 
 function cd(dir: string) {
-	cwd = path.resolve(cwd, dir)
+	cwd = path.resolve(cwd, dir);
 }
 
 export async function $(literals: TemplateStringsArray, ...values: any[]) {
 	const cmd = literals.reduce(
-		(result, current, i) =>
-			result + current + (values?.[i] != null ? `${values[i]}` : ''),
-		'',
-	)
+		(result, current, i) => result + current + (values?.[i] != null ? `${values[i]}` : ''),
+		''
+	);
 
 	if (isGitHubActions) {
-		actionsCore.startGroup(`${cwd} $> ${cmd}`)
+		actionsCore.startGroup(`${cwd} $> ${cmd}`);
 	} else {
-		console.log(`${cwd} $> ${cmd}`)
+		console.log(`${cwd} $> ${cmd}`);
 	}
 
 	const proc = execaCommand(cmd, {
 		env,
 		stdio: 'pipe',
 		cwd,
-	})
-	proc.stdin && process.stdin.pipe(proc.stdin)
-	proc.stdout && proc.stdout.pipe(process.stdout)
-	proc.stderr && proc.stderr.pipe(process.stderr)
-	const result = await proc
+	});
+	proc.stdin && process.stdin.pipe(proc.stdin);
+	proc.stdout && proc.stdout.pipe(process.stdout);
+	proc.stderr && proc.stderr.pipe(process.stderr);
+	const result = await proc;
 
 	if (isGitHubActions) {
-		actionsCore.endGroup()
+		actionsCore.endGroup();
 	}
 
-	return result.stdout
+	return result.stdout;
 }
 
 export async function setupEnvironment(): Promise<EnvironmentData> {
-	const root = dirnameFrom(import.meta.url)
-	const workspace = path.resolve(root, 'workspace')
-	vitePath = path.resolve(workspace, 'vite')
-	cwd = process.cwd()
+	const root = dirnameFrom(import.meta.url);
+	const workspace = path.resolve(root, 'workspace');
+	astroPath = path.resolve(workspace, 'astro');
+	cwd = process.cwd();
 	env = {
 		...process.env,
 		CI: 'true',
@@ -70,135 +68,130 @@ export async function setupEnvironment(): Promise<EnvironmentData> {
 		NODE_OPTIONS: '--max-old-space-size=6144', // GITHUB CI has 7GB max, stay below
 		ECOSYSTEM_CI: 'true', // flag for tests, can be used to conditionally skip irrelevant tests.
 		NO_COLOR: '1',
-	}
-	initWorkspace(workspace)
-	return { root, workspace, vitePath, cwd, env }
+	};
+	initWorkspace(workspace);
+	return { root, workspace, astroPath, cwd, env };
 }
 
 function initWorkspace(workspace: string) {
 	if (!fs.existsSync(workspace)) {
-		fs.mkdirSync(workspace, { recursive: true })
+		fs.mkdirSync(workspace, { recursive: true });
 	}
-	const eslintrc = path.join(workspace, '.eslintrc.json')
+	const eslintrc = path.join(workspace, '.eslintrc.json');
 	if (!fs.existsSync(eslintrc)) {
-		fs.writeFileSync(eslintrc, '{"root":true}\n', 'utf-8')
+		fs.writeFileSync(eslintrc, '{"root":true}\n', 'utf-8');
 	}
-	const editorconfig = path.join(workspace, '.editorconfig')
+	const editorconfig = path.join(workspace, '.editorconfig');
 	if (!fs.existsSync(editorconfig)) {
-		fs.writeFileSync(editorconfig, 'root = true\n', 'utf-8')
+		fs.writeFileSync(editorconfig, 'root = true\n', 'utf-8');
 	}
-	const tsconfig = path.join(workspace, 'tsconfig.json')
+	const tsconfig = path.join(workspace, 'tsconfig.json');
 	if (!fs.existsSync(tsconfig)) {
-		fs.writeFileSync(tsconfig, '{}\n', 'utf-8')
+		fs.writeFileSync(tsconfig, '{}\n', 'utf-8');
 	}
 }
 
 export async function setupRepo(options: RepoOptions) {
 	if (options.branch == null) {
-		options.branch = 'main'
+		options.branch = 'main';
 	}
 	if (options.shallow == null) {
-		options.shallow = true
+		options.shallow = true;
 	}
 
-	let { repo, commit, branch, tag, dir, shallow } = options
+	let { repo, commit, branch, tag, dir, shallow } = options;
 	if (!dir) {
-		throw new Error('setupRepo must be called with options.dir')
+		throw new Error('setupRepo must be called with options.dir');
 	}
 	if (!repo.includes(':')) {
-		repo = `https://github.com/${repo}.git`
+		repo = `https://github.com/${repo}.git`;
 	}
 
-	let needClone = true
+	let needClone = true;
 	if (fs.existsSync(dir)) {
-		const _cwd = cwd
-		cd(dir)
-		let currentClonedRepo: string | undefined
+		const _cwd = cwd;
+		cd(dir);
+		let currentClonedRepo: string | undefined;
 		try {
-			currentClonedRepo = await $`git ls-remote --get-url`
+			currentClonedRepo = await $`git ls-remote --get-url`;
 		} catch {
 			// when not a git repo
 		}
-		cd(_cwd)
+		cd(_cwd);
 
 		if (repo === currentClonedRepo) {
-			needClone = false
+			needClone = false;
 		} else {
-			fs.rmSync(dir, { recursive: true, force: true })
+			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	}
 
 	if (needClone) {
 		await $`git -c advice.detachedHead=false clone ${
 			shallow ? '--depth=1 --no-tags' : ''
-		} --branch ${tag || branch} ${repo} ${dir}`
+		} --branch ${tag || branch} ${repo} ${dir}`;
 	}
-	cd(dir)
-	await $`git clean -fdxq`
+	cd(dir);
+	await $`git clean -fdxq`;
 	await $`git fetch ${shallow ? '--depth=1 --no-tags' : '--tags'} origin ${
 		tag ? `tag ${tag}` : `${commit || branch}`
-	}`
+	}`;
 	if (shallow) {
 		await $`git -c advice.detachedHead=false checkout ${
 			tag ? `tags/${tag}` : `${commit || branch}`
-		}`
+		}`;
 	} else {
-		await $`git checkout ${branch}`
-		await $`git merge FETCH_HEAD`
+		await $`git checkout ${branch}`;
+		await $`git merge FETCH_HEAD`;
 		if (tag || commit) {
-			await $`git reset --hard ${tag || commit}`
+			await $`git reset --hard ${tag || commit}`;
 		}
 	}
 }
 
 function toCommand(
 	task: Task | Task[] | void,
-	agent: Agent,
+	agent: Agent
 ): ((scripts: any) => Promise<any>) | void {
 	return async (scripts: any) => {
-		const tasks = Array.isArray(task) ? task : [task]
+		const tasks = Array.isArray(task) ? task : [task];
 		for (const task of tasks) {
 			if (task == null || task === '') {
-				continue
+				continue;
 			} else if (typeof task === 'string') {
 				if (scripts[task] != null) {
-					const runTaskWithAgent = getCommand(agent, 'run', [task])
-					await $`${runTaskWithAgent}`
+					const runTaskWithAgent = getCommand(agent, 'run', [task]);
+					await $`${runTaskWithAgent}`;
 				} else {
-					await $`${task}`
+					await $`${task}`;
 				}
 			} else if (typeof task === 'function') {
-				await task()
+				await task();
 			} else if (task?.script) {
 				if (scripts[task.script] != null) {
-					const runTaskWithAgent = getCommand(agent, 'run', [
-						task.script,
-						...(task.args ?? []),
-					])
-					await $`${runTaskWithAgent}`
+					const runTaskWithAgent = getCommand(agent, 'run', [task.script, ...(task.args ?? [])]);
+					await $`${runTaskWithAgent}`;
 				} else {
-					throw new Error(
-						`invalid task, script "${task.script}" does not exist in package.json`,
-					)
+					throw new Error(`invalid task, script "${task.script}" does not exist in package.json`);
 				}
 			} else {
 				throw new Error(
-					`invalid task, expected string or function but got ${typeof task}: ${task}`,
-				)
+					`invalid task, expected string or function but got ${typeof task}: ${task}`
+				);
 			}
 		}
-	}
+	};
 }
 
 export async function runInRepo(options: RunOptions & RepoOptions) {
 	if (options.verify == null) {
-		options.verify = true
+		options.verify = true;
 	}
 	if (options.skipGit == null) {
-		options.skipGit = false
+		options.skipGit = false;
 	}
 	if (options.branch == null) {
-		options.branch = 'main'
+		options.branch = 'main';
 	}
 
 	const {
@@ -213,210 +206,199 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 		beforeInstall,
 		beforeBuild,
 		beforeTest,
-	} = options
+	} = options;
 
 	const dir = path.resolve(
 		options.workspace,
-		options.dir || repo.substring(repo.lastIndexOf('/') + 1),
-	)
+		options.dir || repo.substring(repo.lastIndexOf('/') + 1)
+	);
 
 	if (!skipGit) {
-		await setupRepo({ repo, dir, branch, tag, commit })
+		await setupRepo({ repo, dir, branch, tag, commit });
 	} else {
-		cd(dir)
+		cd(dir);
 	}
 	if (options.agent == null) {
-		const detectedAgent = await detect({ cwd: dir, autoInstall: false })
+		const detectedAgent = await detect({ cwd: dir, autoInstall: false });
 		if (detectedAgent == null) {
-			throw new Error(`Failed to detect packagemanager in ${dir}`)
+			throw new Error(`Failed to detect packagemanager in ${dir}`);
 		}
-		options.agent = detectedAgent
+		options.agent = detectedAgent;
 	}
 	if (!AGENTS[options.agent]) {
 		throw new Error(
-			`Invalid agent ${options.agent}. Allowed values: ${Object.keys(
-				AGENTS,
-			).join(', ')}`,
-		)
+			`Invalid agent ${options.agent}. Allowed values: ${Object.keys(AGENTS).join(', ')}`
+		);
 	}
-	const agent = options.agent
-	const beforeInstallCommand = toCommand(beforeInstall, agent)
-	const beforeBuildCommand = toCommand(beforeBuild, agent)
-	const beforeTestCommand = toCommand(beforeTest, agent)
-	const buildCommand = toCommand(build, agent)
-	const testCommand = toCommand(test, agent)
+	const agent = options.agent;
+	const beforeInstallCommand = toCommand(beforeInstall, agent);
+	const beforeBuildCommand = toCommand(beforeBuild, agent);
+	const beforeTestCommand = toCommand(beforeTest, agent);
+	const buildCommand = toCommand(build, agent);
+	const testCommand = toCommand(test, agent);
 
-	const pkgFile = path.join(dir, 'package.json')
-	const pkg = JSON.parse(await fs.promises.readFile(pkgFile, 'utf-8'))
+	const pkgFile = path.join(dir, 'package.json');
+	const pkg = JSON.parse(await fs.promises.readFile(pkgFile, 'utf-8'));
 
-	await beforeInstallCommand?.(pkg.scripts)
+	await beforeInstallCommand?.(pkg.scripts);
 
 	if (verify && test) {
-		const frozenInstall = getCommand(agent, 'frozen')
-		await $`${frozenInstall}`
-		await beforeBuildCommand?.(pkg.scripts)
-		await buildCommand?.(pkg.scripts)
-		await beforeTestCommand?.(pkg.scripts)
-		await testCommand?.(pkg.scripts)
+		const frozenInstall = getCommand(agent, 'frozen');
+		await $`${frozenInstall}`;
+		await beforeBuildCommand?.(pkg.scripts);
+		await buildCommand?.(pkg.scripts);
+		await beforeTestCommand?.(pkg.scripts);
+		await testCommand?.(pkg.scripts);
 	}
-	let overrides = options.overrides || {}
+	let overrides = options.overrides || {};
 	if (options.release) {
-		if (overrides.vite && overrides.vite !== options.release) {
-			throw new Error(
-				`conflicting overrides.vite=${overrides.vite} and --release=${options.release} config. Use either one or the other`,
-			)
-		} else {
-			overrides.vite = options.release
-		}
+		// if (overrides.astro && overrides.astro !== options.release) {
+		// 	throw new Error(
+		// 		`conflicting overrides.astro=${overrides.astro} and --release=${options.release} config. Use either one or the other`,
+		// 	)
+		// } else {
+		// 	overrides.astro = options.release
+		// }
 	} else {
-		overrides.vite ||= `${options.vitePath}/packages/vite`
+		// overrides.astro ||= `${options.astroPath}/packages/astro`
 
-		overrides[`@vitejs/plugin-legacy`] ||=
-			`${options.vitePath}/packages/plugin-legacy`
+		// overrides[`@vitejs/plugin-legacy`] ||=
+		// 	`${options.astroPath}/packages/plugin-legacy`
 
-		const vitePackageInfo = await getVitePackageInfo(options.vitePath)
-		// skip if `overrides.rollup` is `false`
-		if (
-			vitePackageInfo.dependencies.rollup?.version &&
-			overrides.rollup !== false
-		) {
-			overrides.rollup = vitePackageInfo.dependencies.rollup.version
-		}
+		// const vitePackageInfo = await getVitePackageInfo(options.vitePath)
+		// // skip if `overrides.rollup` is `false`
+		// if (
+		// 	vitePackageInfo.dependencies.rollup?.version &&
+		// 	overrides.rollup !== false
+		// ) {
+		// 	overrides.rollup = vitePackageInfo.dependencies.rollup.version
+		// }
 
 		// build and apply local overrides
-		const localOverrides = await buildOverrides(pkg, options, overrides)
-		cd(dir) // buildOverrides changed dir, change it back
+		const localOverrides = await buildOverrides(pkg, options, overrides);
+		cd(dir); // buildOverrides changed dir, change it back
 		overrides = {
 			...overrides,
 			...localOverrides,
-		}
+		};
 	}
-	await applyPackageOverrides(dir, pkg, overrides)
-	await beforeBuildCommand?.(pkg.scripts)
-	await buildCommand?.(pkg.scripts)
+	await applyPackageOverrides(dir, pkg, overrides);
+	await beforeBuildCommand?.(pkg.scripts);
+	await buildCommand?.(pkg.scripts);
 	if (test) {
-		await beforeTestCommand?.(pkg.scripts)
-		await testCommand?.(pkg.scripts)
+		await beforeTestCommand?.(pkg.scripts);
+		await testCommand?.(pkg.scripts);
 	}
-	return { dir }
+	return { dir };
 }
 
-export async function setupViteRepo(options: Partial<RepoOptions>) {
-	const repo = options.repo || 'vitejs/vite'
+export async function setupAstroRepo(options: Partial<RepoOptions>) {
+	const repo = options.repo || 'withastro/astro';
 	await setupRepo({
 		repo,
-		dir: vitePath,
+		dir: astroPath,
 		branch: 'main',
 		shallow: true,
 		...options,
-	})
+	});
 
 	try {
-		const rootPackageJsonFile = path.join(vitePath, 'package.json')
-		const rootPackageJson = JSON.parse(
-			await fs.promises.readFile(rootPackageJsonFile, 'utf-8'),
-		)
-		const viteMonoRepoNames = ['@vitejs/vite-monorepo', 'vite-monorepo']
-		const { name } = rootPackageJson
-		if (!viteMonoRepoNames.includes(name)) {
-			throw new Error(
-				`expected  "name" field of ${repo}/package.json to indicate vite monorepo, but got ${name}.`,
-			)
-		}
-		const needsWrite = await overridePackageManagerVersion(
-			rootPackageJson,
-			'pnpm',
-		)
+		const rootPackageJsonFile = path.join(astroPath, 'package.json');
+		const rootPackageJson = JSON.parse(await fs.promises.readFile(rootPackageJsonFile, 'utf-8'));
+		// const viteMonoRepoNames = ['@vitejs/vite-monorepo', 'vite-monorepo']
+		// const { name } = rootPackageJson
+		// if (!viteMonoRepoNames.includes(name)) {
+		// 	throw new Error(
+		// 		`expected  "name" field of ${repo}/package.json to indicate vite monorepo, but got ${name}.`,
+		// 	)
+		// }
+		const needsWrite = await overridePackageManagerVersion(rootPackageJson, 'pnpm');
 		if (needsWrite) {
-			fs.writeFileSync(
-				rootPackageJsonFile,
-				JSON.stringify(rootPackageJson, null, 2),
-				'utf-8',
-			)
+			fs.writeFileSync(rootPackageJsonFile, JSON.stringify(rootPackageJson, null, 2), 'utf-8');
 			if (rootPackageJson.devDependencies?.pnpm) {
-				await $`pnpm install -Dw pnpm --lockfile-only`
+				await $`pnpm install -Dw pnpm --lockfile-only`;
 			}
 		}
 	} catch (e) {
-		throw new Error(`Failed to setup vite repo`, { cause: e })
+		throw new Error(`Failed to setup astro repo`, { cause: e });
 	}
 }
 
 export async function getPermanentRef() {
-	cd(vitePath)
+	cd(astroPath);
 	try {
-		const ref = await $`git log -1 --pretty=format:%H`
-		return ref
+		const ref = await $`git log -1 --pretty=format:%H`;
+		return ref;
 	} catch (e) {
-		console.warn(`Failed to obtain perm ref. ${e}`)
-		return undefined
+		console.warn(`Failed to obtain perm ref. ${e}`);
+		return undefined;
 	}
 }
 
-export async function buildVite({ verify = false }) {
-	cd(vitePath)
-	const frozenInstall = getCommand('pnpm', 'frozen')
-	const runBuild = getCommand('pnpm', 'run', ['build'])
-	const runTest = getCommand('pnpm', 'run', ['test'])
-	await $`${frozenInstall}`
-	await $`${runBuild}`
+export async function buildAstro({ verify = false }) {
+	cd(astroPath);
+	const frozenInstall = getCommand('pnpm', 'frozen');
+	const runBuild = getCommand('pnpm', 'run', ['build']);
+	const runTest = getCommand('pnpm', 'run', ['test']);
+	await $`${frozenInstall}`;
+	await $`${runBuild}`;
 	if (verify) {
-		await $`${runTest}`
+		await $`${runTest}`;
 	}
 }
 
-export async function bisectVite(
-	good: string,
-	runSuite: () => Promise<Error | void>,
-) {
-	// sometimes vite build modifies files in git, e.g. LICENSE.md
-	// this would stop bisect, so to reset those changes
-	const resetChanges = async () => $`git reset --hard HEAD`
+// export async function bisectVite(
+// 	good: string,
+// 	runSuite: () => Promise<Error | void>,
+// ) {
+// 	// sometimes vite build modifies files in git, e.g. LICENSE.md
+// 	// this would stop bisect, so to reset those changes
+// 	const resetChanges = async () => $`git reset --hard HEAD`
 
-	try {
-		cd(vitePath)
-		await resetChanges()
-		await $`git bisect start`
-		await $`git bisect bad`
-		await $`git bisect good ${good}`
-		let bisecting = true
-		while (bisecting) {
-			const commitMsg = await $`git log -1 --format=%s`
-			const isNonCodeCommit = commitMsg.match(/^(?:release|docs)[:(]/)
-			if (isNonCodeCommit) {
-				await $`git bisect skip`
-				continue // see if next commit can be skipped too
-			}
-			const error = await runSuite()
-			cd(vitePath)
-			await resetChanges()
-			const bisectOut = await $`git bisect ${error ? 'bad' : 'good'}`
-			bisecting = bisectOut.substring(0, 10).toLowerCase() === 'bisecting:' // as long as git prints 'bisecting: ' there are more revisions to test
-		}
-	} catch (e) {
-		console.log('error while bisecting', e)
-	} finally {
-		try {
-			cd(vitePath)
-			await $`git bisect reset`
-		} catch (e) {
-			console.log('Error while resetting bisect', e)
-		}
-	}
-}
+// 	try {
+// 		cd(vitePath)
+// 		await resetChanges()
+// 		await $`git bisect start`
+// 		await $`git bisect bad`
+// 		await $`git bisect good ${good}`
+// 		let bisecting = true
+// 		while (bisecting) {
+// 			const commitMsg = await $`git log -1 --format=%s`
+// 			const isNonCodeCommit = commitMsg.match(/^(?:release|docs)[:(]/)
+// 			if (isNonCodeCommit) {
+// 				await $`git bisect skip`
+// 				continue // see if next commit can be skipped too
+// 			}
+// 			const error = await runSuite()
+// 			cd(vitePath)
+// 			await resetChanges()
+// 			const bisectOut = await $`git bisect ${error ? 'bad' : 'good'}`
+// 			bisecting = bisectOut.substring(0, 10).toLowerCase() === 'bisecting:' // as long as git prints 'bisecting: ' there are more revisions to test
+// 		}
+// 	} catch (e) {
+// 		console.log('error while bisecting', e)
+// 	} finally {
+// 		try {
+// 			cd(vitePath)
+// 			await $`git bisect reset`
+// 		} catch (e) {
+// 			console.log('Error while resetting bisect', e)
+// 		}
+// 	}
+// }
 
 function isLocalOverride(v: string): boolean {
 	if (!v.includes('/') || v.startsWith('@')) {
 		// not path-like (either a version number or a package name)
-		return false
+		return false;
 	}
 	try {
-		return !!fs.lstatSync(v)?.isDirectory()
+		return !!fs.lstatSync(v)?.isDirectory();
 	} catch (e) {
 		if (e.code !== 'ENOENT') {
-			throw e
+			throw e;
 		}
-		return false
+		return false;
 	}
 }
 
@@ -429,197 +411,187 @@ function isLocalOverride(v: string): boolean {
  */
 async function overridePackageManagerVersion(
 	pkg: { [key: string]: any },
-	pm: string,
+	pm: string
 ): Promise<boolean> {
 	const versionInUse = pkg.packageManager?.startsWith(`${pm}@`)
 		? pkg.packageManager.substring(pm.length + 1)
-		: await $`${pm} --version`
-	let overrideWithVersion: string | null = null
+		: await $`${pm} --version`;
+	let overrideWithVersion: string | null = null;
 	if (pm === 'pnpm') {
 		if (semver.eq(versionInUse, '7.18.0')) {
 			// avoid bug with absolute overrides in pnpm 7.18.0
-			overrideWithVersion = '7.18.1'
+			overrideWithVersion = '7.18.1';
 		}
 	}
 	if (overrideWithVersion) {
 		console.warn(
-			`detected ${pm}@${versionInUse} used in ${pkg.name}, changing pkg.packageManager and pkg.engines.${pm} to enforce use of ${pm}@${overrideWithVersion}`,
-		)
+			`detected ${pm}@${versionInUse} used in ${pkg.name}, changing pkg.packageManager and pkg.engines.${pm} to enforce use of ${pm}@${overrideWithVersion}`
+		);
 		// corepack reads this and uses pnpm @ newVersion then
-		pkg.packageManager = `${pm}@${overrideWithVersion}`
+		pkg.packageManager = `${pm}@${overrideWithVersion}`;
 		if (!pkg.engines) {
-			pkg.engines = {}
+			pkg.engines = {};
 		}
-		pkg.engines[pm] = overrideWithVersion
+		pkg.engines[pm] = overrideWithVersion;
 
 		if (pkg.devDependencies?.[pm]) {
 			// if for some reason the pm is in devDependencies, that would be a local version that'd be preferred over our forced global
 			// so ensure it here too.
-			pkg.devDependencies[pm] = overrideWithVersion
+			pkg.devDependencies[pm] = overrideWithVersion;
 		}
 
-		return true
+		return true;
 	}
-	return false
+	return false;
 }
 
-export async function applyPackageOverrides(
-	dir: string,
-	pkg: any,
-	overrides: Overrides = {},
-) {
-	const useFileProtocol = (v: string) =>
-		isLocalOverride(v) ? `file:${path.resolve(v)}` : v
+export async function applyPackageOverrides(dir: string, pkg: any, overrides: Overrides = {}) {
+	const useFileProtocol = (v: string) => (isLocalOverride(v) ? `file:${path.resolve(v)}` : v);
 	// remove boolean flags
 	overrides = Object.fromEntries(
 		Object.entries(overrides)
-			//eslint-disable-next-line @typescript-eslint/no-unused-vars
 			.filter(([key, value]) => typeof value === 'string')
-			.map(([key, value]) => [key, useFileProtocol(value as string)]),
-	)
-	await $`git clean -fdxq` // remove current install
+			.map(([key, value]) => [key, useFileProtocol(value as string)])
+	);
+	await $`git clean -fdxq`; // remove current install
 
-	const agent = await detect({ cwd: dir, autoInstall: false })
+	const agent = await detect({ cwd: dir, autoInstall: false });
 	if (!agent) {
-		throw new Error(`failed to detect packageManager in ${dir}`)
+		throw new Error(`failed to detect packageManager in ${dir}`);
 	}
 	// Remove version from agent string:
 	// yarn@berry => yarn
 	// pnpm@6, pnpm@7 => pnpm
-	const pm = agent?.split('@')[0]
+	const pm = agent?.split('@')[0];
 
-	await overridePackageManagerVersion(pkg, pm)
+	await overridePackageManagerVersion(pkg, pm);
 
 	if (pm === 'pnpm') {
 		if (!pkg.devDependencies) {
-			pkg.devDependencies = {}
+			pkg.devDependencies = {};
 		}
 		pkg.devDependencies = {
 			...pkg.devDependencies,
 			...overrides, // overrides must be present in devDependencies or dependencies otherwise they may not work
-		}
+		};
 		if (!pkg.pnpm) {
-			pkg.pnpm = {}
+			pkg.pnpm = {};
 		}
 		pkg.pnpm.overrides = {
 			...pkg.pnpm.overrides,
 			...overrides,
-		}
+		};
 	} else if (pm === 'yarn') {
 		pkg.resolutions = {
 			...pkg.resolutions,
 			...overrides,
-		}
+		};
 	} else if (pm === 'npm') {
 		pkg.overrides = {
 			...pkg.overrides,
 			...overrides,
-		}
+		};
 		// npm does not allow overriding direct dependencies, force it by updating the blocks themselves
 		for (const [name, version] of Object.entries(overrides)) {
 			if (pkg.dependencies?.[name]) {
-				pkg.dependencies[name] = version
+				pkg.dependencies[name] = version;
 			}
 			if (pkg.devDependencies?.[name]) {
-				pkg.devDependencies[name] = version
+				pkg.devDependencies[name] = version;
 			}
 		}
 	} else {
-		throw new Error(`unsupported package manager detected: ${pm}`)
+		throw new Error(`unsupported package manager detected: ${pm}`);
 	}
-	const pkgFile = path.join(dir, 'package.json')
-	await fs.promises.writeFile(pkgFile, JSON.stringify(pkg, null, 2), 'utf-8')
+	const pkgFile = path.join(dir, 'package.json');
+	await fs.promises.writeFile(pkgFile, JSON.stringify(pkg, null, 2), 'utf-8');
 
 	// use of `ni` command here could cause lockfile violation errors so fall back to native commands that avoid these
 	if (pm === 'pnpm') {
-		await $`pnpm install --prefer-frozen-lockfile --strict-peer-dependencies false`
+		await $`pnpm install --prefer-frozen-lockfile --strict-peer-dependencies false`;
 	} else if (pm === 'yarn') {
-		await $`yarn install`
+		await $`yarn install`;
 	} else if (pm === 'npm') {
-		await $`npm install`
+		await $`npm install`;
 	}
 }
 
 export function dirnameFrom(url: string) {
-	return path.dirname(fileURLToPath(url))
+	return path.dirname(fileURLToPath(url));
 }
 
-export function parseViteMajor(vitePath: string): number {
-	const content = fs.readFileSync(
-		path.join(vitePath, 'packages', 'vite', 'package.json'),
-		'utf-8',
-	)
-	const pkg = JSON.parse(content)
-	return parseMajorVersion(pkg.version)
-}
+// export function parseViteMajor(vitePath: string): number {
+// 	const content = fs.readFileSync(
+// 		path.join(vitePath, 'packages', 'vite', 'package.json'),
+// 		'utf-8',
+// 	)
+// 	const pkg = JSON.parse(content)
+// 	return parseMajorVersion(pkg.version)
+// }
 
 export function parseMajorVersion(version: string) {
-	return parseInt(version.split('.', 1)[0], 10)
+	return parseInt(version.split('.', 1)[0], 10);
 }
 
-async function buildOverrides(
-	pkg: any,
-	options: RunOptions,
-	repoOverrides: Overrides,
-) {
-	const { root } = options
-	const buildsPath = path.join(root, 'builds')
+async function buildOverrides(pkg: any, options: RunOptions, repoOverrides: Overrides) {
+	const { root } = options;
+	const buildsPath = path.join(root, 'builds');
 	const buildFiles: string[] = fs
 		.readdirSync(buildsPath)
 		.filter((f: string) => !f.startsWith('_') && f.endsWith('.ts'))
-		.map((f) => path.join(buildsPath, f))
+		.map((f) => path.join(buildsPath, f));
 	const buildDefinitions: {
-		packages: { [key: string]: string }
-		build: (options: RunOptions) => Promise<{ dir: string }>
-		dir?: string
-	}[] = await Promise.all(buildFiles.map((f) => import(pathToFileURL(f).href)))
+		packages: { [key: string]: string };
+		build: (options: RunOptions) => Promise<{ dir: string }>;
+		dir?: string;
+	}[] = await Promise.all(buildFiles.map((f) => import(pathToFileURL(f).href)));
 	const deps = new Set([
 		...Object.keys(pkg.dependencies ?? {}),
 		...Object.keys(pkg.devDependencies ?? {}),
 		...Object.keys(pkg.peerDependencies ?? {}),
-	])
+	]);
 
 	const needsOverride = (p: string) =>
-		repoOverrides[p] === true || (deps.has(p) && repoOverrides[p] == null)
+		repoOverrides[p] === true || (deps.has(p) && repoOverrides[p] == null);
 	const buildsToRun = buildDefinitions.filter(({ packages }) =>
-		Object.keys(packages).some(needsOverride),
-	)
-	const overrides: Overrides = {}
+		Object.keys(packages).some(needsOverride)
+	);
+	const overrides: Overrides = {};
 	for (const buildDef of buildsToRun) {
 		const { dir } = await buildDef.build({
 			root: options.root,
 			workspace: options.workspace,
-			vitePath: options.vitePath,
-			viteMajor: options.viteMajor,
+			astroPath: options.astroPath,
+			// viteMajor: options.viteMajor,
 			skipGit: options.skipGit,
 			release: options.release,
 			verify: options.verify,
 			// do not pass along scripts
-		})
+		});
 		for (const [name, path] of Object.entries(buildDef.packages)) {
 			if (needsOverride(name)) {
-				overrides[name] = `${dir}/${path}`
+				overrides[name] = `${dir}/${path}`;
 			}
 		}
 	}
-	return overrides
+	return overrides;
 }
 
-/**
- * 	use pnpm ls to get information about installed dependency versions of vite
- * @param vitePath - workspace vite root
- */
-async function getVitePackageInfo(vitePath: string): Promise<PackageInfo> {
-	try {
-		// run in vite dir to avoid package manager mismatch error from corepack
-		const current = cwd
-		cd(`${vitePath}/packages/vite`)
-		const lsOutput = $`pnpm ls --json`
-		cd(current)
-		const lsParsed = JSON.parse(await lsOutput)
-		return lsParsed[0] as PackageInfo
-	} catch (e) {
-		console.error('failed to retrieve vite package infos', e)
-		throw e
-	}
-}
+// /**
+//  * 	use pnpm ls to get information about installed dependency versions of astro
+//  * @param astroPath - workspace astro root
+//  */
+// async function getAstroPackageInfo(astroPath: string): Promise<PackageInfo> {
+// 	try {
+// 		// run in astro dir to avoid package manager mismatch error from corepack
+// 		const current = cwd
+// 		cd(`${astroPath}/packages/astro`)
+// 		const lsOutput = $`pnpm ls --json`
+// 		cd(current)
+// 		const lsParsed = JSON.parse(await lsOutput)
+// 		return lsParsed[0] as PackageInfo
+// 	} catch (e) {
+// 		console.error('failed to retrieve vite package infos', e)
+// 		throw e
+// 	}
+// }
