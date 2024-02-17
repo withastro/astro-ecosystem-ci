@@ -274,11 +274,11 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 		// }
 
 		// build and apply local overrides
-		const localOverrides = await buildOverrides(pkg, options, overrides);
+		// const localOverrides = await buildOverrides(pkg, options, overrides);
 		cd(dir); // buildOverrides changed dir, change it back
 		overrides = {
 			...overrides,
-			...localOverrides,
+			// ...localOverrides,
 		};
 	}
 	await applyPackageOverrides(dir, pkg, overrides);
