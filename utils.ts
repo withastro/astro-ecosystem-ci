@@ -8,6 +8,7 @@ import * as semver from 'semver';
 import type {
 	EnvironmentData,
 	Overrides,
+	PackageInfo,
 	ProcessEnv,
 	RepoOptions,
 	RunOptions,
@@ -251,27 +252,23 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 	}
 	let overrides = options.overrides || {};
 	if (options.release) {
-		// if (overrides.astro && overrides.astro !== options.release) {
-		// 	throw new Error(
-		// 		`conflicting overrides.astro=${overrides.astro} and --release=${options.release} config. Use either one or the other`,
-		// 	)
-		// } else {
-		// 	overrides.astro = options.release
-		// }
+		if (overrides.astro && overrides.astro !== options.release) {
+			throw new Error(
+				`conflicting overrides.astro=${overrides.astro} and --release=${options.release} config. Use either one or the other`
+			);
+		}
+		overrides.astro = options.release;
 	} else {
-		// overrides.astro ||= `${options.astroPath}/packages/astro`
+		overrides.astro ||= `${options.astroPath}/packages/astro`;
 
-		// overrides[`@vitejs/plugin-legacy`] ||=
-		// 	`${options.astroPath}/packages/plugin-legacy`
+		overrides[`"@astrojs/underscore-redirects`] ||=
+			`${options.astroPath}/packages/underscore-redirects`;
 
-		// const vitePackageInfo = await getVitePackageInfo(options.vitePath)
-		// // skip if `overrides.rollup` is `false`
-		// if (
-		// 	vitePackageInfo.dependencies.rollup?.version &&
-		// 	overrides.rollup !== false
-		// ) {
-		// 	overrides.rollup = vitePackageInfo.dependencies.rollup.version
-		// }
+		const astroPackageInfo = await getAstroPackageInfo(options.astroPath);
+		// skip if `overrides.rollup` is `false`
+		if (astroPackageInfo.dependencies.rollup?.version && overrides.rollup !== false) {
+			overrides.rollup = astroPackageInfo.dependencies.rollup.version;
+		}
 
 		// build and apply local overrides
 		// const localOverrides = await buildOverrides(pkg, options, overrides);
@@ -304,13 +301,6 @@ export async function setupAstroRepo(options: Partial<RepoOptions>) {
 	try {
 		const rootPackageJsonFile = path.join(astroPath, 'package.json');
 		const rootPackageJson = JSON.parse(await fs.promises.readFile(rootPackageJsonFile, 'utf-8'));
-		// const viteMonoRepoNames = ['@vitejs/vite-monorepo', 'vite-monorepo']
-		// const { name } = rootPackageJson
-		// if (!viteMonoRepoNames.includes(name)) {
-		// 	throw new Error(
-		// 		`expected  "name" field of ${repo}/package.json to indicate vite monorepo, but got ${name}.`,
-		// 	)
-		// }
 		const needsWrite = await overridePackageManagerVersion(rootPackageJson, 'pnpm');
 		if (needsWrite) {
 			fs.writeFileSync(rootPackageJsonFile, JSON.stringify(rootPackageJson, null, 2), 'utf-8');
@@ -580,21 +570,21 @@ async function buildOverrides(pkg: any, options: RunOptions, repoOverrides: Over
 	return overrides;
 }
 
-// /**
-//  * 	use pnpm ls to get information about installed dependency versions of astro
-//  * @param astroPath - workspace astro root
-//  */
-// async function getAstroPackageInfo(astroPath: string): Promise<PackageInfo> {
-// 	try {
-// 		// run in astro dir to avoid package manager mismatch error from corepack
-// 		const current = cwd
-// 		cd(`${astroPath}/packages/astro`)
-// 		const lsOutput = $`pnpm ls --json`
-// 		cd(current)
-// 		const lsParsed = JSON.parse(await lsOutput)
-// 		return lsParsed[0] as PackageInfo
-// 	} catch (e) {
-// 		console.error('failed to retrieve vite package infos', e)
-// 		throw e
-// 	}
-// }
+/**
+ * 	use pnpm ls to get information about installed dependency versions of astro
+ * @param astroPath - workspace astro root
+ */
+async function getAstroPackageInfo(astroPath: string): Promise<PackageInfo> {
+	try {
+		// run in astro dir to avoid package manager mismatch error from corepack
+		const current = cwd;
+		cd(`${astroPath}/packages/astro`);
+		const lsOutput = $`pnpm ls --json`;
+		cd(current);
+		const lsParsed = JSON.parse(await lsOutput);
+		return lsParsed[0] as PackageInfo;
+	} catch (e) {
+		console.error('failed to retrieve vite package infos', e);
+		throw e;
+	}
+}

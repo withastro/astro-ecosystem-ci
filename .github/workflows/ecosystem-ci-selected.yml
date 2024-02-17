@@ -34,7 +34,7 @@ on:
         required: true
         type: choice
         options:
-          - cloudflare
+          - adapters
 jobs:
   execute-selected-suite:
     timeout-minutes: 30

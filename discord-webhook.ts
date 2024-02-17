@@ -53,7 +53,7 @@ async function run() {
 	await setupEnvironment();
 
 	const refType = env.REF_TYPE;
-	// vite repo is not cloned when release
+	// astro repo is not cloned when release
 	const permRef = refType === 'release' ? undefined : await getPermanentRef();
 
 	const targetText = createTargetText(refType, env.REF, permRef, env.REPO);

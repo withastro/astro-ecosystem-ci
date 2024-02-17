@@ -48,7 +48,7 @@ cli
 	});
 
 cli
-	.command('build-vite', 'build astro only')
+	.command('build-astro', 'build astro only')
 	.option('--verify', 'verify astro checkout by running tests', {
 		default: false,
 	})
