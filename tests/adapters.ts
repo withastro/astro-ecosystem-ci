@@ -7,6 +7,6 @@ export async function test(options: RunOptions) {
 		repo: 'withastro/adapters',
 		branch: 'main',
 		build: 'build:ci',
-		test: 'test:astro-ci',
+		test: 'test',
 	});
 }
