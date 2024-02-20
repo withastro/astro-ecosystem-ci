@@ -11,7 +11,7 @@ export async function test(options: RunOptions) {
 			'@astrojs/telemetry': true,
 		},
 		branch: 'main',
-		build: 'build:ci',
+		build: 'build',
 		test: 'test',
 	});
 }
