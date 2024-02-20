@@ -261,7 +261,7 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 	} else {
 		overrides.astro ||= `${options.astroPath}/packages/astro`;
 
-		overrides[`"@astrojs/underscore-redirects`] ||=
+		overrides['@astrojs/underscore-redirects'] ||=
 			`${options.astroPath}/packages/underscore-redirects`;
 
 		const astroPackageInfo = await getAstroPackageInfo(options.astroPath);
