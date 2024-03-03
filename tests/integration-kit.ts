@@ -14,6 +14,7 @@ export async function test(options: RunOptions) {
 			"@astrojs/react": true,
 			"@astrojs/solid-js": true,
 			"@astrojs/svelte": true,
+			"@astrojs/telemetry": true,
 		},
 		branch: 'main',
 		build: 'lint',
