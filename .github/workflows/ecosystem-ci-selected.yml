@@ -35,6 +35,8 @@ on:
         type: choice
         options:
           - adapters
+          - expressive-code
+          - vtbot
 jobs:
   execute-selected-suite:
     timeout-minutes: 30

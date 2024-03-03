@@ -41,6 +41,8 @@ jobs:
       matrix:
         suite:
           - adapters
+          - expressive-code
+          - vtbot
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
