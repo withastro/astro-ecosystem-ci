@@ -32,6 +32,7 @@ on:
           - adapters
           - expressive-code
           - vtbot
+          - integration-kit
 jobs:
   init:
     runs-on: ubuntu-latest
@@ -105,6 +106,7 @@ jobs:
           - adapters
           - expressive-code
           - vtbot
+          - integration-kit
       fail-fast: false
     steps:
       - uses: actions/checkout@v4

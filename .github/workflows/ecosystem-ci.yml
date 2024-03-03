@@ -43,6 +43,7 @@ jobs:
           - adapters
           - expressive-code
           - vtbot
+          - integration-kit
       fail-fast: false
     steps:
       - uses: actions/checkout@v4

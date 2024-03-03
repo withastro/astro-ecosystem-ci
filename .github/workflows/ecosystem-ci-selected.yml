@@ -37,6 +37,7 @@ on:
           - adapters
           - expressive-code
           - vtbot
+          - integration-kit
 jobs:
   execute-selected-suite:
     timeout-minutes: 30
