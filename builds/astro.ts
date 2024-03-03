@@ -13,4 +13,5 @@ export const packages = {
 	'@astrojs/internal-helpers': 'packages/internal-helpers',
 	'@astrojs/markdown-remark': 'packages/markdown/remark',
 	'@astrojs/telemetry': 'packages/telemetry',
+	'@astrojs/mdx': 'packages/integrations/mdx',
 };
