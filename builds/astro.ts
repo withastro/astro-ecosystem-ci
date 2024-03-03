@@ -14,4 +14,10 @@ export const packages = {
 	'@astrojs/markdown-remark': 'packages/markdown/remark',
 	'@astrojs/telemetry': 'packages/telemetry',
 	'@astrojs/mdx': 'packages/integrations/mdx',
+	'@astrojs/vue': 'packages/integrations/vue',
+	'@astrojs/tailwind': 'packages/integrations/tailwind',
+	'@astrojs/preact': 'packages/integrations/preact',
+	'@astrojs/react': 'packages/integrations/react',
+	'@astrojs/solid-js': 'packages/integrations/solid-js',
+	'@astrojs/svelte': 'packages/integrations/svelte',
 };

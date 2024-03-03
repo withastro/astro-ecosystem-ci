@@ -7,6 +7,13 @@ export async function test(options: RunOptions) {
 		repo: 'florian-lefebvre/astro-integration-kit',
 		overrides: {
 			'@astrojs/internal-helpers': true,
+			'@astrojs/markdown-remark': true,
+			'@astrojs/vue': true,
+			'@astrojs/tailwind': true,
+			"@astrojs/preact":true,
+			"@astrojs/react": true,
+			"@astrojs/solid-js": true,
+			"@astrojs/svelte": true,
 		},
 		branch: 'main',
 		build: 'lint',
