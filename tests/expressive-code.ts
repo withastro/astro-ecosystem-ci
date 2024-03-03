@@ -7,6 +7,9 @@ export async function test(options: RunOptions) {
 		repo: 'expressive-code/expressive-code',
 		overrides: {
 			'@astrojs/mdx': true,
+			'@astrojs/internal-helpers': true,
+			'@astrojs/markdown-remark': true,
+			'@astrojs/telemetry': true,
 		},
 		branch: 'main',
 		build: 'build',

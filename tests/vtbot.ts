@@ -6,7 +6,7 @@ export async function test(options: RunOptions) {
 		...options,
 		repo: 'martrapp/astro-vtbot',
 		branch: 'main',
-		build: 'format',
+		// build: 'format',
 		test: 'test',
 	});
 }
