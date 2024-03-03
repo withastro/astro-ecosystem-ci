@@ -13,6 +13,6 @@ export async function test(options: RunOptions) {
 		},
 		branch: 'main',
 		build: 'build',
-		test: 'test',
+		test: 'test:ecosystem-ci',
 	});
 }
