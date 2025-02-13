@@ -15,15 +15,15 @@ type Env = {
 
 const statusConfig = {
 	success: {
-		color: parseInt('57ab5a', 16),
+		color: 0x57ab5a,
 		emoji: ':white_check_mark:',
 	},
 	failure: {
-		color: parseInt('e5534b', 16),
+		color: 0xe5534b,
 		emoji: ':x:',
 	},
 	cancelled: {
-		color: parseInt('768390', 16),
+		color: 0x768390,
 		emoji: ':stop_button:',
 	},
 };
@@ -53,7 +53,7 @@ async function run() {
 	await setupEnvironment();
 
 	const refType = env.REF_TYPE;
-	// vite repo is not cloned when release
+	// astro repo is not cloned when release
 	const permRef = refType === 'release' ? undefined : await getPermanentRef();
 
 	const targetText = createTargetText(refType, env.REF, permRef, env.REPO);
@@ -124,7 +124,6 @@ async function fetchJobs() {
 			...(process.env.GITHUB_TOKEN
 				? {
 						Authorization: `token ${process.env.GITHUB_TOKEN}`,
-						// eslint-disable-next-line no-mixed-spaces-and-tabs
 				  }
 				: undefined),
 		},

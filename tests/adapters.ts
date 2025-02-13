@@ -5,8 +5,14 @@ export async function test(options: RunOptions) {
 	await runInRepo({
 		...options,
 		repo: 'withastro/adapters',
+		overrides: {
+			'@astrojs/internal-helpers': true,
+			'@astrojs/markdown-remark': true,
+			'@astrojs/prism': true,
+			'@astrojs/telemetry': true,
+		},
 		branch: 'main',
-		build: 'build:ci',
-		test: 'test:astro-ci',
+		build: 'build',
+		test: 'test',
 	});
 }

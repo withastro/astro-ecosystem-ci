@@ -29,7 +29,9 @@ on:
         type: choice
         options:
           - "-"
-          - cloudflare
+          - expressive-code
+          - vtbot
+          - starlight
 jobs:
   init:
     runs-on: ubuntu-latest
@@ -102,7 +104,9 @@ jobs:
     strategy:
       matrix:
         suite:
-          - cloudflare
+          - expressive-code
+          - vtbot
+          - starlight
       fail-fast: false
     steps:
       - uses: actions/checkout@v4

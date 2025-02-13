@@ -1,63 +1,123 @@
 # astro-ecosystem-ci
 
-This repository is used to run integration tests for astro ecosystem projects
+This repository is used to run integration tests for Astro ecosystem projects.
 
-## via github workflow
+## Running tests
 
-### scheduled
+### GitHub workflows
 
-Workflows are scheduled to run automatically every Monday, Wednesday and Friday
+#### Scheduled runs
 
-### manually
+Workflows are scheduled to run automatically every Monday, Wednesday and Friday.
 
-- open [workflow](../../actions/workflows/ecosystem-ci-selected.yml)
-- click 'Run workflow' button on top right of the list
-- select suite to run in dropdown
-- start workflow
+#### Manual runs
 
-## via shell script
+If you are an Astro maintainer, follow these steps to trigger a manual run for one of the ecosystem test suites:
 
-- clone this repo
-- run `pnpm i`
-- run `pnpm test` to run all suites
-- or `pnpm test <suitename>` to select a suite
-- or `tsx ecosystem-ci.ts`
+1. Open the [ecosystem CI workflow](https://github.com/withastro/astro-ecosystem-ci/actions/workflows/ecosystem-ci-selected.yml) on GitHub.
+2. Click the <kbd>Run workflow</kbd> button at the top right of the list.
+3. Select the test suite to run from the dropdown menu.
+4. Confirm by clicking <kbd>Run workflow</kbd>.
 
-You can pass `--tag v2.8.0-beta.1`, `--branch somebranch` or `--commit abcd1234` option to select a specific astro version to build.
-If you pass `--release 2.7.13`, astro build will be skipped and astro is fetched from the registry instead
+#### Trigger a workflow run with a PR comment
 
-The repositories are checked out into `workspace` subdirectory as shallow clones
+Astro maintainers can trigger a workflow run with a comment in an Astro PR (requires triage permissions for the `withastro/astro` repository).
 
-## via comment on PR
+To trigger a run, comment `/ecosystem-ci run` on a PR.
 
-- comment `/ecosystem-ci run` on a PR
-- or `/ecosystem-ci run <suitename>` to select a suite
+You can optionally specify a test suite in the comment: `/ecosystem-ci run <suitename>`
 
-Users with triage permission to withastro/astro repository can only use this.
+See the [“Setting up PR comment triggers”](./docs/pr-comment-setup.md) guide for how to configure this feature.
 
-See [docs/pr-comment-setup.md](./docs/pr-comment-setup.md) for how to setup this feature.
+### Run tests locally
 
-# how to add a new integration test
+1. Clone this repo
 
-- check out the existing [tests](./tests) and add one yourself. Thanks to some utilities it is really easy
-- once you are confident the suite works, add it to the lists of suites in the [workflows](../../actions/)
+2. Install dependencies:
 
-# reporting results
+   ```sh
+    pnpm install
+   ```
 
-## Discord
+3. Run all tests or a single suite as required:
 
-Results are posted automatically to `#ecosystem-ci` on [astro discord](https://astro.build/chat)
+   ```sh
+   # run all tests:
+   pnpm test
+   # run a single test suite, e.g. pnpm test adapters
+   pnpm test <suitename>
+   ```
 
-### on your own server
+   **Optional flags:**
 
-- Go to `Server settings > Integrations > Webhooks` and click `New Webhook`
-- Give it a name, icon and a channel to post to
-- copy the webhook url
-- get in touch with admins of this repo so they can add the webhook
+   You can pass options to the CLI command to select a specific Astro version to use with tests:
 
-#### how to add a discord webhook here
+   - `--tag v2.8.0-beta.1` — use a specific Git tag in the Astro repo
+   - `--branch somebranch` — use a specific Git branch in the Astro repo
+   - `--commit abcd1234` — use a specific Git hash in the Astro repo
+   - `--release 2.7.13` — fetch the specified release from the NPM registry (this will skip building Astro from source)
 
-- Go to `<github repo>/settings/secrets/actions` and click on `New repository secret`
-- set `Name` as `DISCORD_WEBHOOK_URL`
-- paste the discord webhook url you copied from above into `Value`
-- Click `Add secret`
+The repositories for each test suite are checked out into the `workspace/` subdirectory as shallow clones.
+
+## How to add a new test suite
+
+1. If you are not an Astro maintainer, fork and clone this repository.
+
+2. Create a new file in the [tests/](./tests/) directory.
+
+3. Export a `test()` function, which calls the `runInRepo()` utility to configure and run tests for your project.
+
+   For example, the following test would clone a fictional `nasa/apollo` repo from GitHub, set up overrides for internal Astro packages, and run the `test` script specified in that repo’s `package.json`:
+
+   ```ts
+   // tests/nasa-apollo.ts
+   import type { RunOptions } from "../types.d.ts";
+   import { runInRepo } from "../utils.ts";
+
+   export async function test(options: RunOptions) {
+   	await runInRepo({
+   		...options,
+   		repo: "nasa/apollo",
+   		overrides: {
+   			"@astrojs/internal-helpers": true,
+   			"@astrojs/markdown-remark": true,
+   			"@astrojs/prism": true,
+   			"@astrojs/telemetry": true,
+   		},
+   		test: "test",
+   	});
+   }
+   ```
+
+   Use the existing tests as a guide for common patterns in test files.
+
+4. Test your changes locally by running:
+
+   ```sh
+   pnpm test your-file-name-here
+   ```
+
+5. Once you are confident your new test suite works, add its name to the lists of suites in the [GitHub workflow configuration files](./.github/workflows/).
+
+   1. In [`ecosystem-ci-from-pr.yml`](./.github/workflows/ecosystem-ci-from-pr.yml), add your suite name to:
+
+      - `on.workflow_dispatch.inputs.suite.options`
+      - `jobs.execute-all.strategy.matrix.suite`
+
+   2. In [`ecosystem-ci-selected.yml`](./.github/workflows/ecosystem-ci-selected.yml), add your suite name to:
+
+      - `on.workflow_dispatch.inputs.suite.options`
+
+   3. In [`ecosystem-ci.yml`](./.github/workflows/ecosystem-ci.yml), add your suite name to`:
+
+      - `jobs.test-ecosystem.strategy.matrix.suite`
+
+6. Open a PR adding your new files.
+
+## Reporting results
+
+### On Discord
+
+Results are posted automatically to the `#ecosystem-ci` channel in the [Astro Discord server](https://astro.build/chat).
+
+See the [“Setting up a Discord webhook notification”](./docs/discord-webhook-setup.md) guide for how to configure this initially.

@@ -40,7 +40,9 @@ jobs:
     strategy:
       matrix:
         suite:
-          - cloudflare
+          - expressive-code
+          - vtbot
+          - starlight
       fail-fast: false
     steps:
       - uses: actions/checkout@v4

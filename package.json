@@ -4,11 +4,9 @@
   "version": "0.0.1",
   "description": "Astro Ecosystem CI",
   "scripts": {
-    "lint": "biome lint ./",
-    "lint:fix": "biome lint --apply ./",
+    "check": "biome check ./",
+    "check:fix": "biome check --apply ./",
     "typecheck": "tsc",
-    "format": "biome check --linter-enabled=false --apply ./",
-    "format:fix": "pnpm format",
     "test:self": "tsx ecosystem-ci.ts _selftest",
     "test": "tsx ecosystem-ci.ts",
     "bisect": "tsx ecosystem-ci.ts bisect"
