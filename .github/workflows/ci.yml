@@ -17,7 +17,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: corepack enable
+      - run: |
+          npm install -g corepack@latest
+          corepack enable
       - run: pnpm --version
       - uses: actions/setup-node@v4
         with:

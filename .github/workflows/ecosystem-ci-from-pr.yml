@@ -75,7 +75,9 @@ jobs:
         with:
           deno-version: v1.x
         continue-on-error: true
-      - run: corepack enable
+      - run: |
+          npm install -g corepack@latest
+          corepack enable
       - run: pnpm --version
       - run: pnpm i --frozen-lockfile
       - run: >-
